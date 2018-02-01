@@ -56,7 +56,7 @@ class LDAPAuthenticator(Authenticator):
 
         Unicode Example:
             uid={username},ou=people,dc=wikimedia,dc=org
-        
+
         List Example:
             [
             	uid={username},ou=people,dc=wikimedia,dc=org,
@@ -260,12 +260,15 @@ class LDAPAuthenticator(Authenticator):
         config=True,
         help="List of attributes to be searched"
     )
-    
-    
+
+
     @gen.coroutine
     def authenticate(self, handler, data):
         username = data['username']
         password = data['password']
+
+        print ( "username {} password {}".format(username, password) )
+
         # Get LDAP Connection
         def getConnection(userdn, username, password):
             server = ldap3.Server(
@@ -281,10 +284,10 @@ class LDAPAuthenticator(Authenticator):
                 server,
                 user=self.escape_userdn_if_needed(userdn),
                 password=password,
-                auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND,
+                auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND if self.use_ssl else True
             )
             return conn
-        
+
         # Protect against invalid usernames as well as LDAP injection attacks
         if not re.match(self.valid_username_regex, username):
             self.log.warn('username:%s Illegal characters in username, must match regex %s', username, self.valid_username_regex)
@@ -317,7 +320,7 @@ class LDAPAuthenticator(Authenticator):
                 msg += '\n{exc_type}: {exc_msg}'.format(
                     exc_type=exc.__class__.__name__,
                     exc_msg=exc.args[0] if exc.args else ''
-                ) 
+                )
             else:
                 isBound = conn.bind()
             msg = msg.format(
@@ -325,7 +328,7 @@ class LDAPAuthenticator(Authenticator):
                 userdn=userdn,
                 isBound=isBound
             )
-            self.log.debug(msg)                
+            self.log.debug(msg)
             if isBound:
                 break
 
